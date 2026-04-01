@@ -55,6 +55,13 @@ class ReadersWritersMonitor:
         """
         with self.condition:
             # TODO: Replace 'pass' with your logic
+            while self.condition:
+                #Wait until there are no active writers
+                while self.active_writers>0:
+                    self.condition.wait()
+                #Increment reader count and allow reading
+            self.active_readers +=1
+            print(f"Reader{reader_id}starts reading(active readers:{self.active_readers})")
             pass
 
     def end_read(self, reader_id: int) -> None:
@@ -68,6 +75,11 @@ class ReadersWritersMonitor:
         """
         with self.condition:
             # TODO: Replace 'pass' with your logic
+            self.active_readers -= 1
+            print(f"Reader {reader_id} ends reading (active readers: {self.active_readers})")
+            # Notify waiting threads if no readers are left
+            if self.active_readers == 0:
+                self.condition.notify_all()
             pass
 
     def start_write(self, writer_id: int) -> None:
@@ -83,6 +95,14 @@ class ReadersWritersMonitor:
         """
         with self.condition:
             # TODO: Replace 'pass' with your logic
+            self.waiting_writers += 1
+            # Wait until no readers and no active writers
+            while self.active_readers > 0 or self.active_writers >0:
+                 self.condition.wait()
+                # Update writer status
+            self.waiting_writers -= 1
+            self.active_writers += 1
+             print(f"Writer {writer_id} starts writing (waiting writers: {self.waiting_writers})")
             pass
 
     def end_write(self, writer_id: int) -> None:
@@ -96,6 +116,10 @@ class ReadersWritersMonitor:
         """
         with self.condition:
             # TODO: Replace 'pass' with your logic
+            self.active_writers -= 1
+             print(f"Writer {writer_id} ends writing")
+             # Wake up all waiting readers and writers
+             self.condition.notify_all()
             pass
 
 # Donot Change this
@@ -157,24 +181,27 @@ def main() -> None:
 
     #TODO: Create at least 3 Reader threads.
     readers = [
-        Reader(reader_id=1, monitor=monitor)
+        Reader(reader_id=1, monitor=monitor),
+        Reader(reader_id=2, monitor=monitor),
+        Reader(reader_id=3, monitor=monitor)
     ]
     
     #TODO: Create at least 2 writer threads.
     writers = [
-        Writer(writer_id=1, monitor=monitor)
+        Writer(writer_id=1, monitor=monitor),
+        Writer(writer_id=2, monitor=monitor)
     ]
 
     all_threads = readers + writers
     
     # TODO: Start all threads
-
-    
+for thread in all_threads:
+    thread.start()
     # TODO: Wait for all threads to finish
-
-
+for thread in all_threads:
+    thread.join()
     # TODO: Print final message that simulation completed
-
+ print("\n=== All readers and writers have finished. Simulation completed successfully ===")
 
 if __name__ == "__main__":
     main()
